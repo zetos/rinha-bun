@@ -33,7 +33,6 @@ const transactionUpdateBalance = async (
   description: string,
 ): Promise<UpdateResult> => {
   const client = await pool.connect();
-  console.log('connecting..')
 
   try {
     await client.query('BEGIN');

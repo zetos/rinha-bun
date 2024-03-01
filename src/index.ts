@@ -1,26 +1,75 @@
-import { init } from "@stricjs/app";
-import { status } from "@stricjs/app/send";
+import { Elysia, t } from 'elysia';
+import { getBalance, transactionUpdateBalance } from './db';
 
-// Initialize and serve the application with a concise syntax
 const port = Number(Bun.env.PORT) || 3001;
 
-init({
-  routes: ["./"],
-  // Configuration for Bun.serve
-  serve: {
-    port,
-    reusePort: true,
-    hostname: "0.0.0.0",
-    error: (err) => {
-      // Log info to console then return 500
-      console.error(err);
-      return status(null, 500);
-    },
-  },
-  fallback: (ctx) => {
-    console.log("url path:", ctx.path);
-    return status("Not found..", 404);
-  },
+const validateParamId = t.Object({
+  id: t.Numeric(),
 });
 
-console.log("Running on port:", port);
+const app = new Elysia()
+  .get(
+    '/clientes/:id/extrato',
+    async ({ params: { id }, set }) => {
+      const balance = await getBalance(id);
+
+      if (!balance) {
+        set.status = 404;
+        return 'user not found.';
+      }
+
+      return {
+        saldo: {
+          total: balance.bal,
+          data_extrato: balance.current_time,
+          limite: balance.lim,
+        },
+        ultimas_transacoes: balance.transactions,
+      };
+    },
+    {
+      params: validateParamId,
+    },
+  )
+  .post(
+    '/clientes/:id/transacoes',
+    async ({ params: { id }, body, set }) => {
+      // 🙈
+      if (id > 5) {
+        set.status = 404;
+        return 'User not found';
+      }
+
+      const result = await transactionUpdateBalance(
+        id,
+        body.tipo,
+        body.valor,
+        body.descricao,
+      );
+
+      if (result.updated) {
+        return {
+          limite: result.lim,
+          saldo: result.bal,
+        };
+      } else {
+        set.status = 422;
+        return 'invalid transaction.';
+      }
+    },
+    {
+      params: validateParamId,
+      body: t.Object({
+        valor: t.Integer(),
+        tipo: t.Union([t.Literal('c'), t.Literal('d')]),
+        descricao: t.String({ minLength: 1, maxLength: 10 }),
+      }),
+    },
+  )
+  .onError(({ error, set }) => {
+    set.status = 500;
+    return { msg: error.message, stack: error.stack };
+  })
+  .listen(port);
+
+console.info(`App is running at ${app.server?.hostname}:${app.server?.port}`);

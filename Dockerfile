@@ -1,33 +1,36 @@
-FROM oven/bun:latest
-
+# use the official Bun image
+# see all versions at https://hub.docker.com/r/oven/bun/tags
+FROM oven/bun:1 as base
 WORKDIR /usr/src/app
 
-COPY package.json ./
-COPY bun.lockb ./
-# COPY src ./
+# install dependencies into temp directory
+# this will cache them and speed up future builds
+FROM base AS install
+RUN mkdir -p /temp/dev
+COPY package.json bun.lockb /temp/dev/
+RUN cd /temp/dev && bun install --frozen-lockfile
 
-RUN bun install --frozen-lockfile --production
+# install with --production (exclude devDependencies)
+RUN mkdir -p /temp/prod
+COPY package.json bun.lockb /temp/prod/
+RUN cd /temp/prod && bun install --frozen-lockfile --production
 
+# copy node_modules from temp directory
+# then copy all (non-ignored) project files into the image
+FROM base AS prerelease
+COPY --from=install /temp/dev/node_modules node_modules
 COPY . .
 
-ENTRYPOINT [ "bun", "run", "src/index.ts" ]
+ENV NODE_ENV=production
 
-# Use the official Node.js image as the base image
-# FROM node:21-alpine
+# copy production dependencies and source code into final image
+FROM base AS release
+COPY --from=install /temp/prod/node_modules node_modules
+COPY --from=prerelease /usr/src/app/src/index.ts .
+COPY --from=prerelease /usr/src/app/src/db.ts .
+COPY --from=prerelease /usr/src/app/package.json .
 
-# # Set the working directory inside the container
-# WORKDIR /usr/src/app
-
-# # Copy package.json and package-lock.json to the working directory
-# COPY package*.json ./
-
-# # Install Node.js dependencies
-# RUN npm install
-
-# # Copy the rest of the application files to the working directory
-# COPY . .
-
-# RUN npm run build
-
-# # Define the command to start the Node.js application
-# CMD ["node", "build/index.js"]
+# run the app
+USER bun
+EXPOSE 3000/tcp
+ENTRYPOINT [ "bun", "run", "index.ts" ]
