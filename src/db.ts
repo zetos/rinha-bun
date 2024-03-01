@@ -1,4 +1,4 @@
-import { Pool, type QueryResult } from 'pg';
+import postgres from 'postgres';
 
 type UpdateResult = { bal?: number; lim?: number; updated: boolean };
 
@@ -10,17 +10,15 @@ interface BalanceAndTransactions {
 }
 
 interface Transaction {
-  id: number;
-  cid: number;
-  amount: number;
-  type: string;
-  c_at: Date;
-  descr: string;
+  valor: number;
+  tipo: string;
+  realizada_em: Date;
+  descricao: string;
 }
 
-const pool = new Pool({
+const sql = postgres({
   user: 'admin',
-  host: Bun.env.DB_HOSTNAME || 'localhost',
+  host: process.env.DB_HOSTNAME || 'localhost',
   database: 'rinha',
   password: '123',
   port: 5432,
@@ -32,58 +30,36 @@ const transactionUpdateBalance = async (
   amount: number,
   description: string,
 ): Promise<UpdateResult> => {
-  const client = await pool.connect();
-
   try {
-    await client.query('BEGIN');
-
-    const result: QueryResult<{
-      bal: number;
-      lim: number;
-    }> = await client.query(
-      `WITH inserted_transaction AS (
+    const result = await sql`WITH inserted_transaction AS (
           INSERT INTO transaction (cid, amount, type, descr)
-        VALUES ($2, $1, $3, $4)
+        VALUES (${clientId}, ${amount}, ${type}, ${description})
         )
         UPDATE client
-          SET bal = bal ${type === 'd' ? '-' : '+'} $1
-          WHERE id = $2
+          SET bal = bal ${type === 'd' ? sql`-` : sql`+`} ${amount}
+          WHERE id = ${clientId}
           RETURNING bal, lim
-        `,
-      [amount, clientId, type, description],
-    );
+        `;
 
-    await client.query('COMMIT');
-
-    const { bal, lim } = result.rows[0];
-
-    return { bal, lim, updated: true };
+    return { bal: result[0].bal, lim: result[0].lim, updated: true };
   } catch (e) {
-    await client.query('ROLLBACK');
-    console.error('Error, rollingback.', e);
     return { updated: false };
-  } finally {
-    // console.log('finally');
-    client.release();
   }
 };
 
 const getBalance = async (
   clientId: number,
 ): Promise<BalanceAndTransactions> => {
-  const client = await pool.connect();
-
   try {
-    const { rows } = await client.query(
-      `WITH client_balance AS (
+    const result = await sql`WITH client_balance AS (
         SELECT bal, lim
         FROM client
-        WHERE id = $1
+        WHERE id = ${clientId}
     ),
     latest_transactions AS (
         SELECT *
         FROM transaction
-        WHERE cid = $1
+        WHERE cid = ${clientId}
         ORDER BY c_at DESC
         LIMIT 10
     )
@@ -96,13 +72,11 @@ const getBalance = async (
            )) AS transactions
     FROM client_balance cb
     LEFT JOIN latest_transactions lt ON true
-    GROUP BY cb.bal, cb.lim;`,
-      [clientId],
-    );
+    GROUP BY cb.bal, cb.lim;`;
 
-    return rows[0] as BalanceAndTransactions;
-  } finally {
-    client.release();
+    return result[0] as BalanceAndTransactions;
+  } catch (e) {
+    throw e;
   }
 };
 

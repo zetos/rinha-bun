@@ -9,11 +9,10 @@
   },
   "dependencies": {
     "elysia": "^0.8.17",
-    "pg": "^8.11.3"
+    "postgres": "^3.4.3"
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "@types/pg": "^8.11.2",
     "prettier": "^3.2.5"
   },
   "peerDependencies": {
