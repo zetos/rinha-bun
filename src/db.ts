@@ -51,28 +51,25 @@ const getBalance = async (
   clientId: number,
 ): Promise<BalanceAndTransactions> => {
   try {
-    const result = await sql`WITH client_balance AS (
-        SELECT bal, lim
-        FROM client
-        WHERE id = ${clientId}
-    ),
-    latest_transactions AS (
-        SELECT *
+    const result = await sql`
+    WITH latest_transactions AS (
+        SELECT cid, amount, type, c_at, descr
         FROM transaction
         WHERE cid = ${clientId}
         ORDER BY c_at DESC
         LIMIT 10
     )
-    SELECT cb.bal, cb.lim, NOW() as current_time,
+    SELECT c.bal, c.lim, NOW() as current_time,
            json_agg(json_build_object(
                'valor', lt.amount,
                'tipo', lt.type,
                'realizada_em', lt.c_at,
                'descricao', lt.descr
            )) AS transactions
-    FROM client_balance cb
-    LEFT JOIN latest_transactions lt ON true
-    GROUP BY cb.bal, cb.lim;`;
+    FROM client c
+    INNER JOIN latest_transactions lt ON c.id = lt.cid
+    WHERE c.id = ${clientId}
+    GROUP BY c.bal, c.lim;`;
 
     return result[0] as BalanceAndTransactions;
   } catch (e) {
