@@ -21,8 +21,6 @@ export default routes("clientes")
       // cheat and add a clientId > 5 check?
       return status(null, 404);
     }
-    console.log("id:", id);
-    console.log("body:", ctx.state);
     const bodyData = ctx.state.post;
 
     const result = await transactionUpdateBalance(

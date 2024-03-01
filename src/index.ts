@@ -18,9 +18,8 @@ init({
     },
   },
   fallback: (ctx) => {
-    console.log("url path:", ctx.path);
     return status("Not found..", 404);
   },
 });
 
-console.log("Running on port:", port);
+console.info("Running on port:", port);

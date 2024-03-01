@@ -1,4 +1,4 @@
-import { Pool, type QueryResult } from 'pg';
+import { Pool, type QueryResult } from "pg";
 
 type UpdateResult = { bal?: number; lim?: number; updated: boolean };
 
@@ -19,10 +19,10 @@ interface Transaction {
 }
 
 const pool = new Pool({
-  user: 'admin',
-  host: Bun.env.DB_HOSTNAME || 'localhost',
-  database: 'rinha',
-  password: '123',
+  user: "admin",
+  host: Bun.env.DB_HOSTNAME || "localhost",
+  database: "rinha",
+  password: "123",
   port: 5432,
 });
 
@@ -30,13 +30,11 @@ const transactionUpdateBalance = async (
   clientId: number,
   type: string,
   amount: number,
-  description: string,
+  description: string
 ): Promise<UpdateResult> => {
   const client = await pool.connect();
-  console.log('connecting..')
-
   try {
-    await client.query('BEGIN');
+    await client.query("BEGIN");
 
     const result: QueryResult<{
       bal: number;
@@ -47,30 +45,29 @@ const transactionUpdateBalance = async (
         VALUES ($2, $1, $3, $4)
         )
         UPDATE client
-          SET bal = bal ${type === 'd' ? '-' : '+'} $1
+          SET bal = bal ${type === "d" ? "-" : "+"} $1
           WHERE id = $2
           RETURNING bal, lim
         `,
-      [amount, clientId, type, description],
+      [amount, clientId, type, description]
     );
 
-    await client.query('COMMIT');
+    await client.query("COMMIT");
 
     const { bal, lim } = result.rows[0];
 
     return { bal, lim, updated: true };
   } catch (e) {
-    await client.query('ROLLBACK');
-    console.error('Error, rollingback.', e);
+    await client.query("ROLLBACK");
+    console.error("Error, rollingback.", e);
     return { updated: false };
   } finally {
-    // console.log('finally');
     client.release();
   }
 };
 
 const getBalance = async (
-  clientId: number,
+  clientId: number
 ): Promise<BalanceAndTransactions> => {
   const client = await pool.connect();
 
@@ -98,7 +95,7 @@ const getBalance = async (
     FROM client_balance cb
     LEFT JOIN latest_transactions lt ON true
     GROUP BY cb.bal, cb.lim;`,
-      [clientId],
+      [clientId]
     );
 
     return rows[0] as BalanceAndTransactions;

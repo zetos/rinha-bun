@@ -12,8 +12,6 @@ export default routes('clientes')
       // cheat and add a clientId > 5 check?
       return status(null, 404);
     }
-    console.log('current path:', ctx.path)
-    console.log('current DB_HOSTNAME:', Bun.env.DB_HOSTNAME)
 
     const balance = await getBalance(id);
 
