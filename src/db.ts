@@ -71,8 +71,6 @@ const getBalance = async (
     WHERE c.id = ${clientId}
     GROUP BY c.bal, c.lim;`;
 
-    console.log('foo', result, clientId)
-
     return result[0] as BalanceAndTransactions;
   } catch (e) {
     throw e;
