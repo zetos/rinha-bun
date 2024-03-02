@@ -24,7 +24,7 @@ const app = new Elysia()
           data_extrato: balance.current_time,
           limite: balance.lim,
         },
-        ultimas_transacoes: balance.transactions[0].tipo ? balance.transactions[0] : [],
+        ultimas_transacoes: balance.transactions[0].tipo ? balance.transactions : [],
       };
     },
     {
