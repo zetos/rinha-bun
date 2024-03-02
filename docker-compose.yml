@@ -23,8 +23,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.4"
-          memory: "115MB"
+          cpus: "0.35"
+          memory: "185MB"
 
   api02:
     # Essa sintaxe reusa o que foi declarado em 'api01'.
@@ -46,8 +46,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.1"
-          memory: "20MB"
+          cpus: "0.2"
+          memory: "10MB"
 
   db:
     image: postgres:latest
@@ -68,7 +68,7 @@ services:
           # de memória. A distribuição feita aqui é apenas
           # um exemplo – distribua como quiser.
           cpus: "0.6"
-          memory: "250MB"
+          memory: "120MB"
 
 # O uso do modo `bridge` deve ser adequado à carga que será usada no teste.
 # A edição anterior se beneficiou do modo host pois o volume de requisições
