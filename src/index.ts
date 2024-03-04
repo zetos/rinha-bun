@@ -23,7 +23,7 @@ const NotFound = { status: 404 };
 const Unprocessable = { status: 422 };
 const BadRequest = { status: 400 };
 
-new Byte()
+export default new Byte()
   .get('/clientes/:id/extrato', async (ctx) => {
     const id = +ctx.params.id;
     // 🙈
