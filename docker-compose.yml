@@ -4,7 +4,7 @@ services:
   api01: &api
     # Lembre-se de que seu serviço HTTP deve estar hospedado num repositório
     # publicamente acessível! Ex.: hub.docker.com
-    # image: ana/minha-api-matadora:latest
+    # image: zetos/rinha-bun-byte:latest
     build: .
     hostname: api01
     environment:

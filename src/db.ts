@@ -18,7 +18,7 @@ interface Transaction {
 
 const sql = postgres({
   user: 'admin',
-  host: process.env.DB_HOSTNAME || 'localhost',
+  host: Bun.env['DB_HOSTNAME'] || 'localhost',
   database: 'rinha',
   password: '123',
   port: 5432,
@@ -41,7 +41,7 @@ const transactionUpdateBalance = async (
           RETURNING bal, lim
         `;
 
-    return { bal: result[0].bal, lim: result[0].lim, updated: true };
+    return { bal: result[0]['bal'], lim: result[0]['lim'], updated: true };
   } catch (e) {
     return { updated: false };
   }
