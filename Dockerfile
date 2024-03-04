@@ -18,4 +18,6 @@ COPY package.json .
 ENV NODE_ENV=production
 USER bun
 
-ENTRYPOINT [ "bun", "run", "index.ts" ]
+ENV NODE_ENV=production
+
+ENTRYPOINT [ "bun", "run", "src/index.ts" ]
