@@ -9,18 +9,18 @@ const Post = t.obj({
   descricao: t.str({ minLength: 1, maxLength: 10 }),
 });
 
+const NotFound = { status: 404 };
+const Unprocessable = { status: 422 };
+const BadRequest = { status: 400 };
+
 export default new Byte()
   .get('/clientes/:id/extrato', async (ctx) => {
     const id = +ctx.params.id;
-    if (id < 0) {
-      return send.body('Not found', { status: 404 });
+    if (id > 5) {
+      return send.body('Not found', NotFound);
     }
 
     const balance = await getBalance(id);
-
-    if (!balance) {
-      return send.body('Not found', { status: 404 });
-    }
 
     return send.json({
       saldo: {
@@ -36,7 +36,7 @@ export default new Byte()
     {
       body: parse.json({
         then(data: typeof Post) {
-          return vld(Post)(data) ? data : send.body('Bad request', { status: 400 });
+          return vld(Post)(data) ? data : send.body('Bad request', BadRequest);
         },
         // Handle error if specified
         catch(error) {
@@ -48,8 +48,8 @@ export default new Byte()
     },
     async (ctx) => {
       const id = +ctx.params.id;
-      if (id < 0) {
-        return send.body('Not found', { status: 404 });
+      if (id > 5) {
+        return send.body('Not found', NotFound);
       }
       const bodyData = ctx.state.body;
 
@@ -66,7 +66,7 @@ export default new Byte()
           saldo: result.bal,
         });
       } else {
-        return send.body('Bad transaction', { status: 422 });
+        return send.body('Bad transaction', Unprocessable);
       }
     },
   );
