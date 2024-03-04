@@ -1,20 +1,29 @@
 import { Byte, send, parse } from '@bit-js/byte';
 
 import { getBalance, transactionUpdateBalance } from './db';
-import { t, vld } from 'vld-ts';
+import { Type as t, type Static } from '@sinclair/typebox';
+import { TypeCompiler } from '@sinclair/typebox/compiler';
 
-const Post = t.obj({
-  valor: t.int,
-  tipo: t.vals('c', 'd'),
-  descricao: t.str({ minLength: 1, maxLength: 10 }),
+const Post = t.Object({
+  valor: t.Integer(),
+  tipo: t.Union([t.Literal('c'), t.Literal('d')]),
+  descricao: t.String({ minLength: 1, maxLength: 10 }),
 });
+
+const PostC = TypeCompiler.Compile(Post);
+
+const gambi = {
+  '1': 0,
+  '2': 0,
+  '3': 0,
+  '4': 0,
+  '5': 0,
+  //  total: 0
+};
 
 export default new Byte()
   .get('/clientes/:id/extrato', async (ctx) => {
     const id = +ctx.params.id;
-    if (id < 0) {
-      return send.body('Not found', { status: 404 });
-    }
 
     const balance = await getBalance(id);
 
@@ -28,30 +37,39 @@ export default new Byte()
         data_extrato: balance.current_time,
         limite: balance.lim,
       },
-      ultimas_transacoes: balance.transactions[0].tipo ? balance.transactions : [],
+      ultimas_transacoes: balance.transactions[0].tipo
+        ? balance.transactions
+        : [],
     });
   })
   .post(
     '/clientes/:id/transacoes',
     {
       body: parse.json({
-        then(data: typeof Post) {
-          return vld(Post)(data) ? data : send.body('Bad request', { status: 400 });
+        then(data: Static<typeof Post>) {
+          return PostC.Check(data) ? data : send.body(null, { status: 400 });
         },
-        // Handle error if specified
         catch(error) {
-          // Should return a Response or Promise<Response>
-          // throw error;
           return new Response(error);
         },
       }),
     },
     async (ctx) => {
-      const id = +ctx.params.id;
-      if (id < 0) {
-        return send.body('Not found', { status: 404 });
-      }
+      const id = +ctx.params.id as 1 | 2 | 3 | 4 | 5;
       const bodyData = ctx.state.body;
+
+      const isDebit = bodyData.tipo === 'd';
+
+      // isDebit && gambi[id] && bodyData.valor >= gambi[id] blocks: 2043 + 1877 db requests
+      // isDebit && gambi[id] blocks: 4969 + 4809
+
+      if (isDebit && gambi[id]) {
+        // gambi.total = gambi.total + 1;
+        // console.log('::::: total:', gambi.total);
+        return send.body(null, { status: 422 });
+      } else {
+        gambi[id] = 0;
+      }
 
       const result = await transactionUpdateBalance(
         id,
@@ -66,7 +84,8 @@ export default new Byte()
           saldo: result.bal,
         });
       } else {
-        return send.body('Bad transaction', { status: 422 });
+        gambi[id] = bodyData.valor;
+        return send.body(null, { status: 422 });
       }
     },
   );
