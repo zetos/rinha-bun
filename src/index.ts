@@ -16,6 +16,7 @@ const BadRequest = { status: 400 };
 export default new Byte()
   .get('/clientes/:id/extrato', async (ctx) => {
     const id = +ctx.params.id;
+    // 🙈
     if (id > 5) {
       return send.body('Not found', NotFound);
     }
